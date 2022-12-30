@@ -1,0 +1,14 @@
+*
+
+!res/
+!res/*
+
+!src/
+!src/*.c
+!src/*.h
+!src/*.cpp
+!src/*.hpp
+
+!.gitignore
+!Makefile
+!README
