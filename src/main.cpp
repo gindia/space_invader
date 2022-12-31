@@ -1,7 +1,7 @@
 #include "platform.h"
-#include "platform_renderer.h"
+#include "renderer.h"
+#include "vmath.h"
 
-#include <GLES3/gl3.h>
 
 internal void do_logic(void);
 internal void do_drawing(void);

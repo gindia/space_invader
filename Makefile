@@ -5,7 +5,10 @@ EXE :=bin/space_invader
 
 LIBS:=-ldl -lm -lSDL2 -lSDL2_mixer -lGLESv2
 
-SRC_C   :=src/platform.c
+SRC_C   :=src/platform.c \
+		  src/renderer.c \
+		  src/xxhash.c
+
 SRC_CXX :=src/main.cpp
 
 SANITIZE  :=-Wl,-fsanitize=address,-fsanitize=bounds,-fsanitize=enum,-fsanitize=signed-integer-overflow,-fsanitize=null,-fsanitize=signed-integer-overflow,-fsanitize=return,-fsanitize=integer-divide-by-zero,-fsanitize=unreachable,-fsanitize=alignment
@@ -17,12 +20,12 @@ OBJ_CXX :=$(patsubst %.cpp, %.o, $(SRC_CXX))
 
 %.o: %.c %.h
 	@mkdir -p bin
-	@echo -e "Compiling $<"
+	@echo -e "C    Compiling $<"
 	@$(C) -c -o $@ $< $(FLAGS_C)
 
 %.o: %.cpp %.hpp %.h
 	@mkdir -p bin
-	@echo -e "Compiling $<"
+	@echo -e "CXX  Compiling $<"
 	@$(CXX) -c -o $@ $< $(FLAGS_CXX)
 
 $(EXE): $(OBJ_C) $(OBJ_CXX)

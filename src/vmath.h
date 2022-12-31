@@ -28,6 +28,7 @@ typedef struct vec4  versor;
 typedef union  mat4  mat4;
 typedef union  ivec2 ivec2;
 typedef struct ivec3 ivec3;
+typedef struct quad  quad;
 
 static vec2  vec2_zero  (void);
 static vec2  vec2_add   (vec2 lhs,  vec2 rhs);
@@ -124,6 +125,11 @@ static float f32_max (float a, float b);
 static int   f32_eq  (float a, float b);
 static float f32_step(float from, float to, float step);
 static int   i32_step(int from, int to, int step);
+
+static quad quad_from_size      (vec2 top_left, vec2 size);
+static int  quad_collision_point(quad q,  vec2 p);
+static int  quad_collision_quad (quad q0, quad q1);
+
 // }}}
 
 // vec2 {{{
@@ -1158,3 +1164,40 @@ i32_step(int from, int to, int step)
 }
 
 // }}}
+
+// quad {{{
+
+struct quad {
+  vec2 min;
+  vec2 max;
+};
+
+static quad
+quad_from_size(vec2 top_left, vec2 size)
+{
+  quad q;
+  q.min = top_left;
+  q.max = vec2_add(top_left, size);
+  return q;
+}
+
+static int
+quad_collision_point(quad q, vec2 p)
+{
+  return q.min.x < p.x
+      && q.max.x > p.x
+      && q.min.y < p.y
+      && q.max.y > p.y;
+}
+
+static int
+quad_collision_quad(quad q0, quad q1)
+{
+  return q0.min.x < q1.max.x
+      && q0.max.x > q1.min.x
+      && q0.min.y < q1.max.y
+      && q0.max.y > q1.min.y;
+}
+
+// }}} quad
+
