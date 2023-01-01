@@ -1,5 +1,11 @@
 *
 
+!.gitattributes
+!.gitignore
+
+!Makefile
+!README
+
 !res/
 !res/*
 
@@ -8,7 +14,3 @@
 !src/*.h
 !src/*.cpp
 !src/*.hpp
-
-!.gitignore
-!Makefile
-!README

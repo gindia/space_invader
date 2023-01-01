@@ -459,7 +459,7 @@ PLT_DEF void plt_log_warn (const char *fmt, ...);
 PLT_DEF void plt_log_error(const char *fmt, ...);
 
 PLT_DEF void plt_bin_save_to_desk  (const char *filename, u8 *__restrict buffer, size_t buffer_size);
-PLT_DEF u8*  plt_bin_read_from_desk(const char *filename, size_t *size);
+PLT_DEF u8 * plt_bin_read_from_desk(const char *filename, size_t *size);
 PLT_DEF void plt_bin_free(void *buffer);
 
 PLT_DEF const Mouse*    plt_mouse   (void);
