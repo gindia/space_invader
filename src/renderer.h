@@ -12,6 +12,8 @@
 ///   * make sure that stb_image.h, stb_truetype.h and stb_rect_pack.h exists at the same dir.
 ///
 
+#pragma once
+
 #include "platform.h"
 #include "vmath.h"
 
@@ -37,11 +39,12 @@ typedef struct {
 #define SPRITE_ANIMATION_MAX_LENGTH 16
   u8     sprite_index  [SPRITE_ANIMATION_MAX_LENGTH];
   f32    duration_in_ms[SPRITE_ANIMATION_MAX_LENGTH];
-  size_t animation_len; // how many frames in the animation.
-  size_t current_frame;
 
   u32    taint; // hex color multiplyer to the texture
                 // 0xRRGGBBAA R:red G:green B:blue A:alpha
+
+  size_t animation_len; // how many frames in the animation.
+  size_t current_frame;
 
   f32    elapsed_time;  // DO NOT SET:: tracks time to switch between frames
 }Animation;
@@ -51,17 +54,17 @@ REND_DEF void       rend_tick(Renderer *);
 REND_DEF void       rend_drop(Renderer *);
 
 // replaces the font used for rendering.
-REND_DEF void       rend_load_font (Renderer *renderer, const u8 *ttf_raw, size_t font_rendering_size);
-REND_DEF AtlasIndex rend_load_atlas(Renderer *renderer, const u8 *raw_image_buffer, size_t buffer_size, size_t rows, size_t columns);
+REND_DEF void       rend_font_load (Renderer *renderer, const u8 *ttf_raw, size_t font_rendering_size);
+REND_DEF AtlasIndex rend_atlas_load(Renderer *renderer, const u8 *raw_image_buffer, size_t buffer_size, size_t rows, size_t columns, f32 sprite_size);
 
-REND_DEF void animation_load(const u8 *buffer, size_t buffer_size, AtlasIndex, Animation *out);
-REND_DEF void animation_tick(Animation *, f32 delta_time);
+REND_DEF void rend_animation_load(const u8 *buffer, size_t buffer_size, AtlasIndex, Animation *out);
+REND_DEF void rend_animaion_tick (Animation *, f32 delta_time);
 
-REND_DEF void rend_draw_text       (Renderer *, quad, u32 color, const char *fmt, ...);
-REND_DEF void rend_draw_animation  (Renderer *, Animation *, quad);
-REND_DEF void rend_draw_line       (Renderer *, vec2 from, vec2 to, f32 width, u32 color);
-REND_DEF void rend_draw_quad_filled(Renderer *, quad, u32 color);
-REND_DEF void rend_draw_quad_empty (Renderer *, quad, f32 width, u32 color);
+REND_DEF void rend_text_draw       (Renderer *, quad, u32 color, const char *fmt, ...);
+REND_DEF void rend_animation_draw  (Renderer *, Animation *, quad);
+REND_DEF void rend_line_draw       (Renderer *, vec2 from, vec2 to, f32 width, u32 color);
+REND_DEF void rend_quad_draw_filled(Renderer *, quad, u32 color);
+REND_DEF void rend_quad_draw_empty (Renderer *, quad, f32 width, u32 color);
 
 // RENDERER_IMPLEMENTATION {{{
 #ifdef RENDERER_IMPLEMENTATION
@@ -75,12 +78,11 @@ REND_DEF void rend_draw_quad_empty (Renderer *, quad, f32 width, u32 color);
 
 #include <GLES3/gl3.h>
 
-
 #define U32_RGBA_COMMA(hex)   \
-    (hex & 0xFF000000) >> 24, \
-    (hex & 0x00FF0000) >> 16, \
-    (hex & 0x0000FF00) >> 8 , \
-    (hex & 0x000000FF)
+    ((f32)((hex & 0xFF000000) >> 24)) / 255.0f, \
+    ((f32)((hex & 0x00FF0000) >> 16)) / 255.0f, \
+    ((f32)((hex & 0x0000FF00) >> 8 )) / 255.0f, \
+    ((f32) (hex & 0x000000FF)       ) / 255.0f
 
 typedef GLuint Shader;
 typedef GLint  Uniform;
@@ -115,6 +117,7 @@ typedef struct {
   Texture texture;
   size_t  rows;
   size_t  columns;
+  f32     sprite_size;
 }Atlas;
 
 struct Renderer {
@@ -274,6 +277,27 @@ rend__texture_load(const u8 *buffer, size_t size)
   return t;
 }
 
+internal quad
+rend__atlas_sprite_coords(Atlas *atlas, size_t index)
+{
+  f32 iw, ih;
+  size_t x, y;
+  quad out;
+
+  iw = atlas->sprite_size/(f32)atlas->texture.width;
+  ih = atlas->sprite_size/(f32)atlas->texture.height;
+
+  y = index / atlas->columns;
+  x = index % atlas->columns;
+
+  out.min.x = x * iw;
+  out.min.y = y * ih;
+  out.max.x = (x + 1) * iw;
+  out.max.y = (y + 1) * ih;
+
+  return out;
+}
+
 internal b32
 rend__font_parse(const u8 *ttf_raw, size_t font_rendering_size, Font *font)
 {
@@ -322,7 +346,7 @@ rend__font_get_quad(Font *font, char c_to_display, float *xpos, float *ypos, stb
 }
 
 
-REND_DEF Renderer *
+Renderer *
 rend_init(void)
 {
   Renderer *renderer;
@@ -349,7 +373,7 @@ rend_init(void)
   ttf_raw = plt_bin_read_from_desk("res/Minimal5x7.ttf", &ttf_size);
   Assert(ttf_raw);
 
-  rend_load_font(renderer, ttf_raw, DEFAULT_FONT_SIZE);
+  rend_font_load(renderer, ttf_raw, DEFAULT_FONT_SIZE);
 
   glGenVertexArrays(1, &renderer->vao);
   glGenBuffers(1, &renderer->vbo);
@@ -373,7 +397,7 @@ rend_init(void)
   return renderer;
 }
 
-REND_DEF void
+void
 rend_tick(Renderer *)
 {
   i32 width, height;
@@ -387,7 +411,7 @@ rend_tick(Renderer *)
   glClear(GL_COLOR_BUFFER_BIT);
 }
 
-REND_DEF void
+void
 rend_drop(Renderer *renderer)
 {
   rend__font_free(&renderer->font);
@@ -395,8 +419,8 @@ rend_drop(Renderer *renderer)
 }
 
 // replaces the font used for rendering.
-REND_DEF void
-rend_load_font(Renderer *renderer, const u8 *ttf_raw, size_t font_rendering_size)
+void
+rend_font_load(Renderer *renderer, const u8 *ttf_raw, size_t font_rendering_size)
 {
   Assert(renderer);
   Assert(ttf_raw);
@@ -412,8 +436,8 @@ rend_load_font(Renderer *renderer, const u8 *ttf_raw, size_t font_rendering_size
       renderer->font.img_height, renderer->font.img_channels);
 }
 
-REND_DEF AtlasIndex
-rend_load_atlas(Renderer* renderer, const u8 *raw_image_buffer, size_t buffer_size, size_t rows, size_t columns)
+AtlasIndex
+rend_atlas_load(Renderer* renderer, const u8 *raw_image_buffer, size_t buffer_size, size_t rows, size_t columns, f32 sprite_size)
 {
   size_t index;
 
@@ -423,28 +447,29 @@ rend_load_atlas(Renderer* renderer, const u8 *raw_image_buffer, size_t buffer_si
 
   index = renderer->atlas_len;
 
-  renderer->atlas[index].texture = rend__texture_load(raw_image_buffer, buffer_size);
-  renderer->atlas[index].rows    = rows;
-  renderer->atlas[index].columns = columns;
+  renderer->atlas[index].texture     = rend__texture_load(raw_image_buffer, buffer_size);
+  renderer->atlas[index].rows        = rows;
+  renderer->atlas[index].columns     = columns;
+  renderer->atlas[index].sprite_size = sprite_size;
 
   renderer->atlas_len++;
 
   return index;
 }
 
-REND_DEF void
-animation_load(const u8 *buffer, size_t buffer_size, AtlasIndex, Animation *out)
+void
+rend_animation_load(const u8 *buffer, size_t buffer_size, AtlasIndex, Animation *out)
 {
   Assert(0 && "Not Implemented Yet");
 }
 
-REND_DEF void
-animation_tick(Animation *animation, f32 delta_time)
+void
+rend_animaion_tick(Animation *animation, f32 delta_time)
 {
   animation->elapsed_time += delta_time;
   if (animation->elapsed_time >= animation->duration_in_ms[animation->current_frame]) {
     animation->elapsed_time = 0.0;
-    if (animation->current_frame < animation->animation_len) {
+    if (animation->current_frame < (animation->animation_len - 1)) {
       animation->current_frame ++;
     } else {
       animation->current_frame = 0;
@@ -454,8 +479,8 @@ animation_tick(Animation *animation, f32 delta_time)
 
 #define DRAWING_TEXT_CAPACITY 2048
 
-REND_DEF void
-rend_draw_text(Renderer *renderer, quad q, u32 color, const char *fmt, ...)
+void
+rend_text_draw(Renderer *renderer, quad q, u32 color, const char *fmt, ...)
 {
   char buffer[DRAWING_TEXT_CAPACITY];
   size_t buffer_len;
@@ -463,6 +488,7 @@ rend_draw_text(Renderer *renderer, quad q, u32 color, const char *fmt, ...)
   f32 xpos, ypos;
   stbtt_aligned_quad stb_q;
   i32 window_width, window_height;
+  GLint u_space_matrix, u_taint, u_tex0;
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -477,9 +503,9 @@ rend_draw_text(Renderer *renderer, quad q, u32 color, const char *fmt, ...)
   ypos = q.min.y  + (renderer->font.font_size / 2);
 
   glUseProgram(renderer->shader[SHADER_FONT]);
-  GLint u_space_matrix = glGetUniformLocation(renderer->shader[SHADER_FONT], "u_space_matrix");
-  GLint u_taint        = glGetUniformLocation(renderer->shader[SHADER_FONT], "u_taint");
-  GLint u_tex0         = glGetUniformLocation(renderer->shader[SHADER_FONT], "u_tex0");
+  u_space_matrix = glGetUniformLocation(renderer->shader[SHADER_FONT], "u_space_matrix");
+  u_taint        = glGetUniformLocation(renderer->shader[SHADER_FONT], "u_taint");
+  u_tex0         = glGetUniformLocation(renderer->shader[SHADER_FONT], "u_tex0");
 
   if (-1 != u_space_matrix) {
     mat4 space_matrix;
@@ -528,17 +554,95 @@ rend_draw_text(Renderer *renderer, quad q, u32 color, const char *fmt, ...)
   glDisable(GL_BLEND);
 }
 
-REND_DEF void rend_draw_animation  (Renderer *, Animation *, quad);
-REND_DEF void rend_draw_line       (Renderer *, vec2 from, vec2 to, f32 width, u32 color);
-
-REND_DEF void
-rend_draw_quad_filled(Renderer *renderer, quad q, u32 color)
+void
+rend_animation_draw(Renderer *renderer, Animation *animation, quad q)
 {
   f32 x0, x1, y0, y1, s0, s1, t0, t1;
   i32 window_width, window_height;
+  GLint u_space_matrix, u_model, u_taint, u_tex0, u_use_texture;
+  Atlas *atlas;
+  quad sprite_coords;
 
-  //glEnable(GL_BLEND);
-  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  plt_window_size(&window_width, &window_height);
+
+  glUseProgram(renderer->shader[SHADER_ATLAS]);
+  u_space_matrix = glGetUniformLocation(renderer->shader[SHADER_ATLAS], "u_space_matrix");
+  u_model        = glGetUniformLocation(renderer->shader[SHADER_ATLAS], "u_model");
+  u_taint        = glGetUniformLocation(renderer->shader[SHADER_ATLAS], "u_taint");
+  u_tex0         = glGetUniformLocation(renderer->shader[SHADER_ATLAS], "u_tex0");
+  u_use_texture  = glGetUniformLocation(renderer->shader[SHADER_ATLAS], "u_use_texture");
+
+  if (-1 != u_space_matrix) {
+    mat4 space_matrix;
+    space_matrix = mat4_ortho(0.0, (f32)window_width, (f32)window_height, 0.0, -0.1, 0.1);
+    glUniformMatrix4fv(u_space_matrix, 1, GL_FALSE, &space_matrix.m[0][0]);
+  }
+
+  if (-1 != u_model) {
+    mat4 model;
+    model = mat4_identity();
+    glUniformMatrix4fv(u_model, 1, GL_FALSE, &model.m[0][0]);
+  }
+
+  if (-1 != u_taint) {
+    glUniform4f(u_taint, U32_RGBA_COMMA(animation->taint));
+  }
+
+  if (-1 != u_tex0) {
+    glUniform1i(u_tex0, 0);
+  }
+
+  if (-1 != u_use_texture) {
+    glUniform1i(u_use_texture, 1);
+  }
+
+  Assert(animation->atlas_index < renderer->atlas_len && "incorrect atlas index [out of bounds || not loaded]");
+  atlas = &renderer->atlas[animation->atlas_index];
+
+  sprite_coords = rend__atlas_sprite_coords(atlas, animation->sprite_index[animation->current_frame]);
+
+  glBindVertexArray(renderer->vao);
+  glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo);
+
+  x0 = q.min.x; x1 = q.max.x; y0 = q.min.y; y1 = q.max.y;
+  s0 = sprite_coords.min.x;
+  s1 = sprite_coords.max.x;
+  t0 = sprite_coords.min.y;
+  t1 = sprite_coords.max.y;
+
+  f32 vertices[] = {
+    x1, y1, s1, t1, // 0
+    x1, y0, s1, t0, // 1
+    x0, y1, s0, t1, // 2
+    x1, y0, s1, t0, // 3
+    x0, y0, s0, t0, // 4
+    x0, y1, s0, t1, // 5
+  };
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, atlas->texture.id);
+
+  glBufferData(GL_ARRAY_BUFFER, sizeof(f32) * 4 * 6, vertices, GL_DYNAMIC_DRAW);
+
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+
+  glDisable(GL_BLEND);
+
+}
+
+void rend_line_draw       (Renderer *, vec2 from, vec2 to, f32 width, u32 color);
+
+void
+rend_quad_draw_filled(Renderer *renderer, quad q, u32 color)
+{
+  f32 x0, x1, y0, y1, s0, s1, t0, t1;
+  i32 window_width, window_height;
 
   plt_window_size(&window_width, &window_height);
 
@@ -594,11 +698,9 @@ rend_draw_quad_filled(Renderer *renderer, quad q, u32 color)
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
-
-  //glDisable(GL_BLEND);
 }
 
-REND_DEF void rend_draw_quad_empty (Renderer *, quad, f32 width, u32 color);
+void rend_quad_draw_empty (Renderer *, quad, f32 width, u32 color);
 
 
 #endif // RENDERER_IMPLEMENTATION

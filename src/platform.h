@@ -44,7 +44,10 @@ typedef double   f64;
 #   endif
 #endif
 
-// enum KET_* {{{
+typedef size_t Key;
+typedef size_t MouseKey;
+
+// enum KEY_* {{{
 // this enum is just a straight up copy from `SDL2/Scancode.h` with shortened up names for convince.
 enum {
   KEY_UNKNOWN = 0,
@@ -414,19 +417,19 @@ enum {
 };
 // }}}
 
-enum {
-  MOUSE_BUTTON_LEFT = 0,
-  MOUSE_BUTTON_RIGHT,
-  MOUSE_BUTTON_MIDDLE,
+enum { // MouseKey
+  MOUSE_KEY_LEFT = 0,
+  MOUSE_KEY_RIGHT,
+  MOUSE_KEY_MIDDLE,
 
-  MOUSE_BUTTON_COUNT,
+  MOUSE_KEY_COUNT,
 };
 
 typedef struct {
   f32 x, y;
-  u8  previous[MOUSE_BUTTON_COUNT];
-  u8  current [MOUSE_BUTTON_COUNT];
-  f32 duration[MOUSE_BUTTON_COUNT];
+  u8  previous[MOUSE_KEY_COUNT];
+  u8  current [MOUSE_KEY_COUNT];
+  f32 duration[MOUSE_KEY_COUNT];
 }Mouse;
 
 typedef struct {
@@ -437,7 +440,7 @@ typedef struct {
 
 typedef struct {
   u64 milliseconds;
-  f64 delta_time; // the last increment between the last frame and currnet frame in seconds.
+  f64 delta_time; // the last increment between the last frame and currnet frame in milliseconds.
 }Clock;
 
 typedef void Chunk;
@@ -465,6 +468,12 @@ PLT_DEF void plt_bin_free(void *buffer);
 PLT_DEF const Mouse*    plt_mouse   (void);
 PLT_DEF const Keyboard* plt_keyboard(void);
 PLT_DEF const Clock*    plt_clock   (void);
+
+PLT_DEF b32   plt_key_clicked (Key);
+PLT_DEF b32   plt_key_released(Key);
+
+PLT_DEF b32   plt_mouse_clicked (MouseKey);
+PLT_DEF b32   plt_mouse_released(MouseKey);
 
 
 PLT_DEF Chunk * plt_chunk_load(const u8 *data, size_t size);
@@ -516,7 +525,7 @@ internal void clock_update (Clock *clock);
 internal void mouse_tick   (Mouse *mouse);
 internal void keyboard_tick(Keyboard *keyboard);
 
-PLT_DEF void
+void
 plt_init_gles2_static(const char *window_name, i32 width, i32 height)
 {
   Assert(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO) == 0);
@@ -556,6 +565,13 @@ plt_init_gles2_static(const char *window_name, i32 width, i32 height)
   Assert(g_sys->gl_context);
   SDL_GL_SetSwapInterval(1); // Enable vsync
 
+#ifdef DEBUG
+  SDL_ShowCursor(1); // show cursor
+#else
+  SDL_ShowCursor(0); // hide cursor
+#endif
+
+
   ////////////////
   ///// init audio
   ////////////////
@@ -583,7 +599,7 @@ plt_init_gles2_static(const char *window_name, i32 width, i32 height)
   Assert((audio_device_success == 0) && "failed to open audio device");
 }
 
-PLT_DEF void
+void
 plt_quit(void)
 {
   Assert(g_sys && "Forgot to init -> use plt_init_*() first.");
@@ -596,7 +612,7 @@ plt_quit(void)
   free(g_sys);
 }
 
-PLT_DEF b32
+b32
 plt_poll_events(void)
 {
   Assert(g_sys && "Forgot to init -> use plt_init_*() first.");
@@ -627,9 +643,9 @@ plt_poll_events(void)
       {
         switch (e.button.button)
         {
-          case SDL_BUTTON_LEFT:   { g_sys->mouse.current[MOUSE_BUTTON_LEFT]   = 1; }break;
-          case SDL_BUTTON_MIDDLE: { g_sys->mouse.current[MOUSE_BUTTON_MIDDLE] = 1; }break;
-          case SDL_BUTTON_RIGHT:  { g_sys->mouse.current[MOUSE_BUTTON_RIGHT]  = 1; }break;
+          case SDL_BUTTON_LEFT:   { g_sys->mouse.current[MOUSE_KEY_LEFT]   = 1; }break;
+          case SDL_BUTTON_MIDDLE: { g_sys->mouse.current[MOUSE_KEY_MIDDLE] = 1; }break;
+          case SDL_BUTTON_RIGHT:  { g_sys->mouse.current[MOUSE_KEY_RIGHT]  = 1; }break;
           case SDL_BUTTON_X1:     { }break;
           case SDL_BUTTON_X2:     { }break;
 
@@ -644,28 +660,28 @@ plt_poll_events(void)
   return 1;
 }
 
-PLT_DEF void
+void
 plt_gl_swap_buffers(void)
 {
   Assert(g_sys && "Forgot to init -> use plt_init_*() first.");
   SDL_GL_SwapWindow(g_sys->window);
 }
 
-PLT_DEF void
+void
 plt_gl_set_vsync(b32 is_on)
 {
   Assert(g_sys && "Forgot to init -> use plt_init_*() first.");
   SDL_GL_SetSwapInterval(is_on);
 }
 
-PLT_DEF void
+void
 plt_window_fullscreen(b32 is_fullscreen)
 {
   Assert(g_sys && "Forgot to init -> use plt_init_*() first.");
   SDL_SetWindowFullscreen(g_sys->window, SDL_WINDOW_FULLSCREEN_DESKTOP & is_fullscreen);
 }
 
-PLT_DEF void
+void
 plt_window_size(i32 *w, i32 *h)
 {
   Assert(g_sys && "Forgot to init -> use plt_init_*() first.");
@@ -674,7 +690,7 @@ plt_window_size(i32 *w, i32 *h)
 
 #define LOG_CAPACITY     2048L
 
-PLT_DEF void
+void
 plt_log_info (const char *fmt, ...)
 {
   char buffer[LOG_CAPACITY];
@@ -687,7 +703,7 @@ plt_log_info (const char *fmt, ...)
   fprintf(stdout, "info: %s\n", buffer);
 }
 
-PLT_DEF void
+void
 plt_log_warn (const char *fmt, ...)
 {
   char buffer[LOG_CAPACITY];
@@ -700,7 +716,7 @@ plt_log_warn (const char *fmt, ...)
   fprintf(stderr, "warn: %s\n", buffer);
 }
 
-PLT_DEF void
+void
 plt_log_error(const char *fmt, ...)
 {
   char buffer[LOG_CAPACITY];
@@ -713,7 +729,7 @@ plt_log_error(const char *fmt, ...)
   fprintf(stderr, "error: %s\n", buffer);
 }
 
-PLT_DEF void
+void
 plt_bin_save_to_desk(const char *filename, u8 *__restrict buffer, size_t buffer_size)
 {
   FILE *file = fopen(filename, "wb");
@@ -722,7 +738,7 @@ plt_bin_save_to_desk(const char *filename, u8 *__restrict buffer, size_t buffer_
   fclose(file);
 }
 
-PLT_DEF u8 *
+u8 *
 plt_bin_read_from_desk(const char *filename, size_t *size)
 {
   u8 *buffer;
@@ -756,64 +772,100 @@ plt_bin_read_from_desk(const char *filename, size_t *size)
   return buffer;
 }
 
-PLT_DEF void
+void
 plt_bin_free(void *buffer)
 {
   free(buffer);
 }
 
-PLT_DEF const Mouse*
+const Mouse*
 plt_mouse(void)
 {
   Assert(g_sys && "Forgot to init -> use plt_init_*() first.");
   return &g_sys->mouse;
 }
 
-PLT_DEF const Keyboard*
+const Keyboard*
 plt_keyboard(void)
 {
   Assert(g_sys && "Forgot to init -> use plt_init_*() first.");
   return &g_sys->keyboard;
 }
 
-PLT_DEF const Clock*
+const Clock*
 plt_clock(void)
 {
   Assert(g_sys && "Forgot to init -> use plt_init_*() first.");
   return &g_sys->clock;
 }
 
+b32
+plt_key_clicked(Key key)
+{
+  Assert(g_sys && "Forgot to init -> use plt_init_*() first.");
+  Assert(key < KEY_COUNT);
+
+  return g_sys->keyboard.current[key] && !g_sys->keyboard.previous[key];
+}
+
+b32
+plt_key_released(Key key)
+{
+  Assert(g_sys && "Forgot to init -> use plt_init_*() first.");
+  Assert(key < KEY_COUNT);
+
+  return !g_sys->keyboard.current[key] && g_sys->keyboard.previous[key];
+}
+
+b32
+plt_mouse_clicked(MouseKey key)
+{
+  Assert(g_sys && "Forgot to init -> use plt_init_*() first.");
+  Assert(key < MOUSE_KEY_COUNT);
+
+  return g_sys->mouse.current[key] && !g_sys->mouse.previous[key];
+}
+
+b32
+plt_mouse_released(MouseKey key)
+{
+  Assert(g_sys && "Forgot to init -> use plt_init_*() first.");
+  Assert(key < MOUSE_KEY_COUNT);
+
+  return !g_sys->mouse.current[key] && g_sys->mouse.previous[key];
+}
+
 internal void
 clock_update(Clock *clock)
 {
   u64 new_tick = SDL_GetTicks64();
-  clock->delta_time = (new_tick - clock->milliseconds) / 1000.0;
+  clock->delta_time = (new_tick - clock->milliseconds);
   clock->milliseconds = new_tick;
 }
 
 internal void
 mouse_tick(Mouse *mouse)
 {
-  if (mouse->previous[MOUSE_BUTTON_LEFT]   && mouse->current[MOUSE_BUTTON_LEFT])
+  if (mouse->previous[MOUSE_KEY_LEFT]   && mouse->current[MOUSE_KEY_LEFT])
   {
-    mouse->duration[MOUSE_BUTTON_LEFT]   += g_sys->clock.delta_time;
+    mouse->duration[MOUSE_KEY_LEFT]   += g_sys->clock.delta_time;
   }
-  if (mouse->previous[MOUSE_BUTTON_MIDDLE] && mouse->current[MOUSE_BUTTON_MIDDLE])
+  if (mouse->previous[MOUSE_KEY_MIDDLE] && mouse->current[MOUSE_KEY_MIDDLE])
   {
-    mouse->duration[MOUSE_BUTTON_MIDDLE] += g_sys->clock.delta_time;
+    mouse->duration[MOUSE_KEY_MIDDLE] += g_sys->clock.delta_time;
   }
-  if (mouse->previous[MOUSE_BUTTON_RIGHT]  && mouse->current[MOUSE_BUTTON_RIGHT])
+  if (mouse->previous[MOUSE_KEY_RIGHT]  && mouse->current[MOUSE_KEY_RIGHT])
   {
-    mouse->duration[MOUSE_BUTTON_RIGHT]  += g_sys->clock.delta_time;
+    mouse->duration[MOUSE_KEY_RIGHT]  += g_sys->clock.delta_time;
   }
 
-  mouse->previous[MOUSE_BUTTON_LEFT]   = mouse->current[MOUSE_BUTTON_LEFT];
-  mouse->previous[MOUSE_BUTTON_MIDDLE] = mouse->current[MOUSE_BUTTON_MIDDLE];
-  mouse->previous[MOUSE_BUTTON_RIGHT]  = mouse->current[MOUSE_BUTTON_RIGHT];
+  mouse->previous[MOUSE_KEY_LEFT]   = mouse->current[MOUSE_KEY_LEFT];
+  mouse->previous[MOUSE_KEY_MIDDLE] = mouse->current[MOUSE_KEY_MIDDLE];
+  mouse->previous[MOUSE_KEY_RIGHT]  = mouse->current[MOUSE_KEY_RIGHT];
 
-  mouse->current[MOUSE_BUTTON_LEFT]   = 0;
-  mouse->current[MOUSE_BUTTON_MIDDLE] = 0;
-  mouse->current[MOUSE_BUTTON_RIGHT]  = 0;
+  mouse->current[MOUSE_KEY_LEFT]   = 0;
+  mouse->current[MOUSE_KEY_MIDDLE] = 0;
+  mouse->current[MOUSE_KEY_RIGHT]  = 0;
 }
 
 internal void

@@ -127,8 +127,10 @@ static float f32_step(float from, float to, float step);
 static int   i32_step(int from, int to, int step);
 
 static quad quad_from_size      (vec2 top_left, vec2 size);
+static quad quad_around_center  (vec2 center, vec2 size);
 static int  quad_collision_point(quad q,  vec2 p);
 static int  quad_collision_quad (quad q0, quad q1);
+static quad quad_move           (quad q,  vec2 d);
 
 // }}}
 
@@ -1181,6 +1183,21 @@ quad_from_size(vec2 top_left, vec2 size)
   return q;
 }
 
+static quad
+quad_around_center(vec2 center, vec2 size)
+{
+  vec2 top_left;
+  quad q;
+
+  top_left.x = center.x - size.x/2.0f;
+  top_left.y = center.y - size.y/2.0f;
+
+  q.min = top_left;
+  q.max = vec2_add(top_left, size);
+
+  return q;
+}
+
 static int
 quad_collision_point(quad q, vec2 p)
 {
@@ -1199,5 +1216,12 @@ quad_collision_quad(quad q0, quad q1)
       && q0.max.y > q1.min.y;
 }
 
-// }}} quad
+static quad
+quad_move(quad q,  vec2 d)
+{
+  q.min = vec2_add(q.min, d);
+  q.max = vec2_add(q.max, d);
+  return q;
+}
 
+// }}} quad

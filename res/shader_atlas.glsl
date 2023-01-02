@@ -13,7 +13,9 @@ out vec2 frag_uv;
 uniform mat4 u_space_matrix;
 uniform mat4 u_model;
 
-void main(void) {
+void
+main(void)
+{
   gl_Position = u_space_matrix * u_model * vec4(in_data.xy, 0.f, 1.f);
   frag_uv     = in_data.zw;
 }
@@ -30,7 +32,9 @@ uniform vec4      u_taint;
 uniform sampler2D u_tex0;
 uniform int       u_use_texture;
 
-void main(void) {
+void
+main(void)
+{
   vec4 mapped_tex;
 
   if (u_use_texture == 1) {
