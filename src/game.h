@@ -6,23 +6,30 @@ extern "C" {
 
 #include "common.h"
 
+typedef u32 EntityFlags;
+typedef u32 AiState;
+
 enum { // EntityFlags
   ENTITY_FLAG_ACTIVE = 1 << 0,
 
   ENTITY_FLAG_BULLET = 1 << 1,
+  ENTITY_FLAG_ENEMY  = 1 << 2,
 
   ENTITY_FLAG_COUNT,
 };
 
+
 typedef struct {
-  u32       flags;
-  Animation animation;
-  quad      bounding_box;
+  EntityFlags flags;
+  Animation   animation;
+  quad        bounding_box;
 }Entity;
 
 typedef struct {
   Entity player;
   Entity player_exhaust;
+
+  f32 spwan_timer;
 
 #define GAME_MAX_ENTITIES 512
   Entity entity[GAME_MAX_ENTITIES];

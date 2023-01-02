@@ -3,7 +3,7 @@ CXX :=g++
 
 EXE :=bin/space_invader
 
-LIBS:=-ldl -lm -lSDL2 -lSDL2_mixer -lGLESv2
+LIBS:=-ldl -lm -lSDL2 -lSDL2_mixer -lGLESv2 -lX11
 
 SRC_C   :=src/platform.c \
 		  src/renderer.c \

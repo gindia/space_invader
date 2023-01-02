@@ -61,7 +61,7 @@ REND_DEF void rend_animation_load(const u8 *buffer, size_t buffer_size, AtlasInd
 REND_DEF void rend_animaion_tick (Animation *, f32 delta_time);
 
 REND_DEF void rend_text_draw       (Renderer *, quad, u32 color, const char *fmt, ...);
-REND_DEF void rend_animation_draw  (Renderer *, Animation *, quad);
+REND_DEF void rend_animation_draw  (Renderer *, Animation *, quad, f32 angle);
 REND_DEF void rend_line_draw       (Renderer *, vec2 from, vec2 to, f32 width, u32 color);
 REND_DEF void rend_quad_draw_filled(Renderer *, quad, u32 color);
 REND_DEF void rend_quad_draw_empty (Renderer *, quad, f32 width, u32 color);
@@ -555,7 +555,7 @@ rend_text_draw(Renderer *renderer, quad q, u32 color, const char *fmt, ...)
 }
 
 void
-rend_animation_draw(Renderer *renderer, Animation *animation, quad q)
+rend_animation_draw(Renderer *renderer, Animation *animation, quad q, f32 angle)
 {
   f32 x0, x1, y0, y1, s0, s1, t0, t1;
   i32 window_width, window_height;
@@ -582,8 +582,25 @@ rend_animation_draw(Renderer *renderer, Animation *animation, quad q)
   }
 
   if (-1 != u_model) {
-    mat4 model;
-    model = mat4_identity();
+    mat4 model, rot, tran;
+    vec3 scale;
+    vec3 position;
+
+    scale.x = q.max.x - q.min.x;
+    scale.y = q.max.y - q.min.y;
+    scale.z = 1.0f;
+
+    position.x = q.min.x + (scale.x * 0.5f);
+    position.y = q.min.y + (scale.y * 0.5f);
+    position.z = 0.0f;
+
+    rot = mat4_rotation_deg(angle, 0.0, 0.0);
+    tran = mat4_identity();
+    mat4_scale(&tran, scale);
+    mat4_translate(&tran, position);
+
+    model = mat4_mul(tran, rot);
+
     glUniformMatrix4fv(u_model, 1, GL_FALSE, &model.m[0][0]);
   }
 
@@ -607,7 +624,7 @@ rend_animation_draw(Renderer *renderer, Animation *animation, quad q)
   glBindVertexArray(renderer->vao);
   glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo);
 
-  x0 = q.min.x; x1 = q.max.x; y0 = q.min.y; y1 = q.max.y;
+  x0 = -0.5; x1 = 0.5; y0 = -0.5; y1 = 0.5;
   s0 = sprite_coords.min.x;
   s1 = sprite_coords.max.x;
   t0 = sprite_coords.min.y;

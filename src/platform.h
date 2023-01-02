@@ -565,12 +565,7 @@ plt_init_gles2_static(const char *window_name, i32 width, i32 height)
   Assert(g_sys->gl_context);
   SDL_GL_SetSwapInterval(1); // Enable vsync
 
-#ifdef DEBUG
-  SDL_ShowCursor(1); // show cursor
-#else
   SDL_ShowCursor(0); // hide cursor
-#endif
-
 
   ////////////////
   ///// init audio
