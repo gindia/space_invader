@@ -5,6 +5,28 @@ game_init(Game *game, const u8 *level, size_t level_len)
 {
   Assert(game);
   UNUSED(level); UNUSED(level_len); //
+
+  game->player.animation.atlas_index = 0;// atlas_index;
+  game->player.animation.sprite_index  [0] = 0;
+  game->player.animation.duration_in_ms[0] = 100.0;
+  game->player.animation.animation_len = 1;
+  game->player.animation.current_frame = 0;
+  game->player.animation.taint = 0xFFFFFFFF;
+  game->player.bounding_box = quad_from_size(vec2{100.0, 100.0}, vec2{32.0, 32.0});
+
+  game->player_exhaust.animation.atlas_index = 0;// atlas_index;
+  game->player_exhaust.animation.sprite_index  [0] = 1;
+  game->player_exhaust.animation.sprite_index  [1] = 2;
+  game->player_exhaust.animation.sprite_index  [2] = 3;
+  game->player_exhaust.animation.sprite_index  [3] = 4;
+  game->player_exhaust.animation.duration_in_ms[0] = 100.0;
+  game->player_exhaust.animation.duration_in_ms[1] = 100.0;
+  game->player_exhaust.animation.duration_in_ms[2] = 100.0;
+  game->player_exhaust.animation.duration_in_ms[3] = 100.0;
+  game->player_exhaust.animation.animation_len = 4;
+  game->player_exhaust.animation.current_frame = 0;
+  game->player_exhaust.animation.taint = 0xFFFFFFFF;
+  //game->player_exhaust.bounding_box = quad_from_size(vec2{100.0, 100.0}, vec2{32.0, 32.0});
 }
 
 internal size_t
@@ -212,5 +234,22 @@ game_update_and_render(Game *game, Renderer *renderer, f32 delta_time)
 
     rend_animation_draw(renderer, &game->player.animation, game->player.bounding_box, 0.0);
     rend_animation_draw(renderer, &game->player_exhaust.animation, game->player_exhaust.bounding_box, 0.0);
+
+    rend_animation_draw(renderer, &game->player_exhaust.animation, game->player_exhaust.bounding_box, 0.0);
+
+#ifdef DEBUG
+    {
+      quad q;
+      f32 font_size;
+
+      font_size = rend_font_size(renderer);
+      q = quad_from_size(vec2 {}, vec2 {(f32)window_width, font_size});
+
+      rend_text_draw(renderer, q, 0xFFFFFFFF, "Active Entities ");
+
+      q = quad_move(q, vec2 {0.0, font_size});
+      rend_text_draw(renderer, q, 0xFFFFFFFF, "font_size %f", font_size);
+    }
+#endif
   }
 }

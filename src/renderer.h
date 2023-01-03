@@ -27,6 +27,7 @@
 #   endif
 #endif
 
+// make sure that the font size is a 16 multiple
 #define DEFAULT_FONT_SIZE 32
 
 typedef struct Renderer Renderer;
@@ -54,8 +55,10 @@ REND_DEF void       rend_tick(Renderer *);
 REND_DEF void       rend_drop(Renderer *);
 
 // replaces the font used for rendering.
-REND_DEF void       rend_font_load (Renderer *renderer, const u8 *ttf_raw, size_t font_rendering_size);
-REND_DEF AtlasIndex rend_atlas_load(Renderer *renderer, const u8 *raw_image_buffer, size_t buffer_size, size_t rows, size_t columns, f32 sprite_size);
+REND_DEF void       rend_font_load (Renderer *, const u8 *ttf_raw, size_t font_rendering_size);
+REND_DEF f32        rend_font_size (Renderer *);
+
+REND_DEF AtlasIndex rend_atlas_load(Renderer *, const u8 *raw_image_buffer, size_t buffer_size, size_t rows, size_t columns, f32 sprite_size);
 
 REND_DEF void rend_animation_load(const u8 *buffer, size_t buffer_size, AtlasIndex, Animation *out);
 REND_DEF void rend_animaion_tick (Animation *, f32 delta_time);
@@ -436,6 +439,12 @@ rend_font_load(Renderer *renderer, const u8 *ttf_raw, size_t font_rendering_size
       renderer->font.img_height, renderer->font.img_channels);
 }
 
+f32
+rend_font_size (Renderer *renderer)
+{
+  return (f32)renderer->font.font_size;
+}
+
 AtlasIndex
 rend_atlas_load(Renderer* renderer, const u8 *raw_image_buffer, size_t buffer_size, size_t rows, size_t columns, f32 sprite_size)
 {
@@ -488,7 +497,8 @@ rend_text_draw(Renderer *renderer, quad q, u32 color, const char *fmt, ...)
   f32 xpos, ypos;
   stbtt_aligned_quad stb_q;
   i32 window_width, window_height;
-  GLint u_space_matrix, u_taint, u_tex0;
+  GLint u_space_matrix, u_model, u_taint, u_tex0;
+  f32 scaled_font_size;
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -532,6 +542,7 @@ rend_text_draw(Renderer *renderer, quad q, u32 color, const char *fmt, ...)
       ; i ++ )
   {
     rend__font_get_quad(&renderer->font, buffer[i], &xpos, &ypos, &stb_q);
+
     if (xpos > q.max.x) break;
 
     f32 vertices[] = {

@@ -37,7 +37,7 @@ main(void)
   mapped_tex.a = mapped_tex.r;
   mapped_tex.rgb = vec3(1.0);
 
-  out_frag_color = mapped_tex * u_taint;
+  out_frag_color = mapped_tex * u_taint * vec4(1.5);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////

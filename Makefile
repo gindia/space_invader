@@ -32,7 +32,7 @@ $(EXE): $(OBJ_C) $(OBJ_CXX)
 	@$(CXX) -o  $(EXE)  $(OBJ_C)  $(OBJ_CXX)  $(LIBS)
 	@echo -e "Done"
 
-build: $(EXE) $(OBJ_C) $(OBJ_CXX)
+build: $(EXE)
 
 .PHONY: run clean rebuild
 
