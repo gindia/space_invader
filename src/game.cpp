@@ -154,10 +154,10 @@ game_update_and_render(Game *game, Renderer *renderer, f32 delta_time)
 
     if (plt_mouse_clicked(MOUSE_KEY_LEFT)) {
       game__player_fire_bullet(game, vec2 {0.0,  20.0});
-      game__player_fire_bullet(game, vec2 {0.0, -20.0});
-      game__player_fire_bullet(game, vec2 {0.0,  10.0});
-      game__player_fire_bullet(game, vec2 {0.0, -10.0});
-      game__player_fire_bullet(game, vec2 {0.0,   5.0});
+      game__player_fire_bullet(game, vec2 {10.0, -20.0});
+      game__player_fire_bullet(game, vec2 {-10.0,  10.0});
+      game__player_fire_bullet(game, vec2 {3.0, -10.0});
+      game__player_fire_bullet(game, vec2 {-3.0,   5.0});
     }
 
     for ( size_t i = 0
